@@ -5,7 +5,7 @@ import { normalizeYouTubeTrackMetadata } from "./youtube";
 export function buildHiddenPlaceholder(position: number): RevealedTrack {
   return {
     position,
-    title: "Hidden until played",
+    title: "Hidden",
     artist: "Hidden until play starts",
     provider: "generic",
     playbackCapabilities: ["handoffPlayback"],

@@ -156,6 +156,29 @@ function hydrateFromStorage(exchange: ReceiverExchange) {
   };
 }
 
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy failed");
+  }
+}
+
 export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
   const hydrated = useMemo(() => hydrateFromStorage(exchange), [exchange]);
   const normalizedFirstTrack = useMemo(
@@ -285,7 +308,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
     loadedPlayerTrackStarted
       ? loadedPlayerPosition
       : activeTrackPosition;
-  const currentVisibleTitle = currentVisibleTrack?.title ?? "Mystery track";
+  const currentVisibleTitle = currentVisibleTrack?.title ?? "Hidden";
   const currentVisibleArtist = currentVisibleTrack?.artist ?? null;
   const currentVisibleAlbumName = currentVisibleTrack?.albumName ?? null;
   const mixtapeArtwork = exchange.burner.coverImageUrl?.trim() ?? "";
@@ -339,7 +362,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
     loadedPlayerTrackStarted &&
     !activeTrackStarted
       ? `Track ${formatTrackPosition(activeTrackPosition)} is selected next. Press Play or Next to switch and reveal it.`
-      : currentVisibleTrack
+        : currentVisibleTrack
         ? [
             currentVisibleAlbumName ? `From ${currentVisibleAlbumName}` : null,
             currentVisibleProvider
@@ -348,7 +371,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
           ]
             .filter(Boolean)
             .join(" • ") || "Track metadata is revealed once playback starts."
-        : "Press Play or Next to start this mystery track. Burner reveals it only after playback begins.";
+        : "Press Play or Next to start this hidden track. Burner reveals it only after playback begins.";
   const shareLabel =
     shareActionState === "sharing"
       ? "Sharing..."
@@ -407,7 +430,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
         return;
       }
 
-      await navigator.clipboard.writeText(shareUrl);
+      await copyText(shareUrl);
       setShareActionState("copied");
       setStatusMessage(
         "Burner link copied. Share it with whoever should hear this next.",
@@ -419,10 +442,19 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
         return;
       }
 
-      setShareActionState("idle");
-      setStatusMessage(
-        "Burner could not open the share flow in this browser. Copy the URL from the address bar instead.",
-      );
+      try {
+        await copyText(shareUrl);
+        setShareActionState("copied");
+        setStatusMessage(
+          "Burner could not open the share sheet here, so the link was copied instead.",
+        );
+        window.setTimeout(() => setShareActionState("idle"), 2000);
+      } catch {
+        setShareActionState("idle");
+        setStatusMessage(
+          "Burner could not open the share flow in this browser. Copy the URL from the address bar instead.",
+        );
+      }
     }
   }
 
@@ -472,7 +504,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
           position,
           revealed,
           stateLabel,
-          title: track?.title ?? "Mystery track",
+          title: track?.title ?? "Hidden",
           track,
         };
       }),
@@ -929,7 +961,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
       if (exchange.isLocalShare) {
         const localTrack = localTracks[position - 1];
         if (!localTrack) {
-          throw new Error("That mystery track could not be loaded.");
+          throw new Error("That hidden track could not be loaded.");
         }
 
         startedTrack = buildRevealedTrackFromLocalTrack(localTrack, position);
@@ -965,7 +997,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
                 setIsPlaying(false);
                 setRequestState("idle");
                 setStatusMessage(
-                  "That track is not ready yet. Start the earlier mystery first.",
+                  "That track is not ready yet. Start the earlier hidden track first.",
                 );
                 return;
               }
@@ -996,7 +1028,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
 
           if (started.status === "blocked") {
             setStatusMessage(
-              "That track is not ready yet. Start the earlier mystery first.",
+              "That track is not ready yet. Start the earlier hidden track first.",
             );
             setRequestState("idle");
             return;
