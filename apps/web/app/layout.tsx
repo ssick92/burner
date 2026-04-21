@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { webRetroThemeClassName, webRetroThemeCss } from "@burner/ui";
 
 import { CanonicalLocalhost } from "../components/canonical-localhost";
 
@@ -11,7 +12,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <head>
+        <style id="burner-web-retro-theme">{webRetroThemeCss}</style>
+      </head>
+      <body className={webRetroThemeClassName}>
         <CanonicalLocalhost />
         {children}
       </body>
