@@ -28,7 +28,6 @@ import {
 } from "../lib/track-preview";
 import {
   buildShareEmailHref,
-  canUseWebShare,
   copyText,
 } from "../lib/share-utils";
 import { env, runtimeFlags } from "../lib/env";
@@ -1354,29 +1353,6 @@ export function HomeClient() {
     }
   }
 
-  async function sharePublishedBurner() {
-    if (!publishResult || !canUseWebShare()) {
-      return;
-    }
-
-    try {
-      setShareFeedback(null);
-      await navigator.share({
-        title: title.trim() || publishResult.shortCode,
-        text: `${senderName.trim() || "Someone"} burned you a Burner CD.`,
-        url: publishResult.shareUrl,
-      });
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-
-      setShareFeedback(
-        "This browser would not open the share sheet. Copy the link or send it by email instead.",
-      );
-    }
-  }
-
   const activePlaylistPreviewIndex = previewTrackId
     ? tracks.findIndex((track) => track.providerTrackId === previewTrackId)
     : -1;
@@ -1746,9 +1722,6 @@ export function HomeClient() {
             itemCountLabel={`${tracks.length} track${tracks.length === 1 ? "" : "s"}`}
             onClose={() => setShowShareDialog(false)}
             onCopy={() => void copyShareUrl()}
-            onSystemShare={
-              canUseWebShare() ? () => sharePublishedBurner() : undefined
-            }
             shareUrl={publishResult.shareUrl}
             shortCode={publishResult.shortCode}
             supportBox={donationSupportBox}

@@ -9,7 +9,6 @@ type ShareDialogProps = {
   itemCountLabel?: string;
   onClose: () => void;
   onCopy: () => void;
-  onSystemShare?: () => Promise<void> | void;
   shareUrl: string;
   shortCode?: string;
   supportBox?: {
@@ -17,7 +16,6 @@ type ShareDialogProps = {
     copy?: string;
     title: string;
   };
-  systemShareBusy?: boolean;
   title: string;
 };
 
@@ -28,11 +26,9 @@ export function ShareDialog({
   itemCountLabel,
   onClose,
   onCopy,
-  onSystemShare,
   shareUrl,
   shortCode,
   supportBox,
-  systemShareBusy = false,
   title,
 }: ShareDialogProps) {
   useEffect(() => {
@@ -75,8 +71,7 @@ export function ShareDialog({
               Share “{title || "Untitled Burner"}”
             </h2>
             <p className="share-dialog__copy">
-              The link is live. Copy it, open your mail app, or use the system
-              share sheet.
+              The link is live. Copy it or open your mail app.
             </p>
           </div>
           <button
@@ -116,16 +111,6 @@ export function ShareDialog({
             <a className="button button--secondary" href={emailHref}>
               Send via Email
             </a>
-            {onSystemShare ? (
-              <button
-                className="button button--secondary"
-                disabled={systemShareBusy}
-                onClick={() => void onSystemShare()}
-                type="button"
-              >
-                {systemShareBusy ? "Sharing..." : "Share…"}
-              </button>
-            ) : null}
             <a
               className="button button--secondary"
               href={shareUrl}

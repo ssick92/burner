@@ -43,11 +43,22 @@ async function describeFunctionError(
 async function getBrowserAuthHeaders() {
   const supabase = getBrowserSupabaseClient();
   const {
-    data: { session },
+    data: { session: initialSession },
   } = await supabase.auth.getSession();
 
-  if (!session?.access_token) {
+  if (!initialSession?.access_token) {
     throw new Error("Burner sign-in expired. Sign in again to open saved burns.");
+  }
+
+  let session = initialSession;
+  const expiresAtMs = session.expires_at ? session.expires_at * 1000 : 0;
+
+  if (!expiresAtMs || expiresAtMs <= Date.now() + 60_000) {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session?.access_token) {
+      throw new Error("Burner sign-in expired. Sign in again to open saved burns.");
+    }
+    session = data.session;
   }
 
   return {

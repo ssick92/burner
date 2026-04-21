@@ -19,7 +19,6 @@ import {
 import { readReceiverState, writeReceiverState } from "../lib/receiver-state";
 import {
   buildShareEmailHref,
-  canUseWebShare,
   copyText,
 } from "../lib/share-utils";
 import { loadYouTubeIframeApi } from "../lib/youtube-player";
@@ -223,7 +222,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
     string | null
   >(null);
   const [receiverShareState, setReceiverShareState] = useState<
-    "idle" | "sharing" | "copied"
+    "idle" | "copied"
   >("idle");
 
   const localTracks = exchange.localTracks ?? [];
@@ -420,39 +419,6 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
     } catch {
       setReceiverShareFeedback(
         "Copy failed in this browser. Use the address bar if needed.",
-      );
-    }
-  }
-
-  async function shareWithOthers() {
-    if (!shareUrl) {
-      setReceiverShareFeedback("Burner is still resolving the current link.");
-      return;
-    }
-
-    if (!canUseWebShare()) {
-      return;
-    }
-
-    setReceiverShareState("sharing");
-    setReceiverShareFeedback(null);
-
-    try {
-      await navigator.share({
-        title: exchange.burner.title || "Burner mixtape",
-        text: `${exchange.burner.senderName} shared a Burner CD with you.`,
-        url: shareUrl,
-      });
-      setReceiverShareState("idle");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        setReceiverShareState("idle");
-        return;
-      }
-
-      setReceiverShareState("idle");
-      setReceiverShareFeedback(
-        "This browser would not open the share sheet. Copy the link or send it by email instead.",
       );
     }
   }
@@ -1575,9 +1541,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
             setReceiverShareState("idle");
           }}
           onCopy={() => void copyReceiverShareUrl()}
-          onSystemShare={canUseWebShare() ? () => shareWithOthers() : undefined}
           shareUrl={shareUrl}
-          systemShareBusy={receiverShareState === "sharing"}
           title={exchange.burner.title}
         />
       ) : null}

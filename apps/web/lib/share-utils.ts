@@ -44,10 +44,3 @@ export function buildShareEmailHref(input: {
 
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
-
-export function canUseWebShare() {
-  return (
-    typeof navigator !== "undefined" &&
-    typeof navigator.share === "function"
-  );
-}
