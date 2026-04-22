@@ -1,20 +1,22 @@
 export const webRetroTheme = {
   colorScheme: "light",
   colors: {
-    ink: "#1f1f22",
-    inkSoft: "#33333a",
-    muted: "#6b6b75",
-    mutedSoft: "#8a8a95",
-    hairline: "rgba(0, 0, 0, 0.12)",
-    hairlineStrong: "rgba(0, 0, 0, 0.22)",
-    pageBg: "#d8dce3",
-    surface: "#fdfcf9",
-    surfaceAlt: "#f4f2ec",
-    surfaceSunken: "#ebe9e2",
-    rowAlt: "#f7f5ef",
-    accent: "#3a72b8",
-    accentDeep: "#2a568c",
-    accentSoft: "#cfdcee",
+    ink: "#20242c",
+    inkSoft: "#38404d",
+    muted: "#5d697d",
+    mutedSoft: "#8090a4",
+    hairline: "rgba(69, 83, 104, 0.22)",
+    hairlineStrong: "rgba(57, 70, 91, 0.38)",
+    pageBg: "#c6cfdb",
+    surface: "#f7fafe",
+    surfaceAlt: "#e5ebf4",
+    surfaceSunken: "#d5dce8",
+    rowAlt: "#eff4fa",
+    accent: "#3d79cb",
+    accentDeep: "#244f9b",
+    accentSoft: "#d7e5fb",
+    ember: "#ef8a2f",
+    emberDeep: "#b55509",
     danger: "#b54a3a",
     warning: "#b98a2a",
     success: "#4a8a4a",
@@ -73,6 +75,8 @@ export const webRetroThemeCss = `
   --accent: ${webRetroTheme.colors.accent};
   --accent-deep: ${webRetroTheme.colors.accentDeep};
   --accent-soft: ${webRetroTheme.colors.accentSoft};
+  --ember: ${webRetroTheme.colors.ember};
+  --ember-deep: ${webRetroTheme.colors.emberDeep};
   --danger: ${webRetroTheme.colors.danger};
   --warning: ${webRetroTheme.colors.warning};
   --success: ${webRetroTheme.colors.success};

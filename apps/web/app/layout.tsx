@@ -3,10 +3,15 @@ import type { Metadata } from "next";
 import { webRetroThemeClassName, webRetroThemeCss } from "@burner/ui";
 
 import { CanonicalLocalhost } from "../components/canonical-localhost";
+import {
+  burnerBrandName,
+  burnerMetaDescription,
+  burnerTagline,
+} from "../lib/brand";
 
 export const metadata: Metadata = {
-  title: "Burner",
-  description: "Create YouTube-powered mixtape links and reveal tracks one by one in the browser.",
+  title: `${burnerBrandName} | ${burnerTagline}`,
+  description: burnerMetaDescription,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

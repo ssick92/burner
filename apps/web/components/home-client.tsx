@@ -10,15 +10,9 @@ import {
   type BurnerDraft,
   type ImportedTrack,
 } from "@burner/core";
-import {
-  FunctionsFetchError,
-  FunctionsHttpError,
-  FunctionsRelayError,
-  type Session,
-  type SupabaseClient,
-} from "@supabase/supabase-js";
+import { type Session, type SupabaseClient } from "@supabase/supabase-js";
 
-import { BurnerMark } from "./burner-mark";
+import { BurnerLogo } from "./burner-logo";
 import { CoverArtField } from "./cover-art-field";
 import { ShareDialog } from "./share-dialog";
 import { defaultDraft } from "../lib/provider-catalog";
@@ -41,7 +35,6 @@ import {
   buildBrowserApiUrl,
   getCanonicalBrowserOrigin,
 } from "../lib/browser-origin";
-
 interface PublishResult {
   burnerId: string;
   shareUrl: string;
@@ -111,50 +104,12 @@ function shouldUseLocalPublishFallback(error: unknown) {
   if (!isLocalBrowserHost()) {
     return false;
   }
-
-  if (
-    error instanceof FunctionsFetchError ||
-    error instanceof FunctionsRelayError
-  ) {
-    return true;
-  }
-
-  if (error instanceof FunctionsHttpError) {
-    return error.context.status === 404 || error.context.status >= 500;
-  }
-
   return (
-    error instanceof Error && error.message.includes("Edge Function")
+    error instanceof TypeError ||
+    (error instanceof Error &&
+      (error.message.includes("Failed to fetch") ||
+        error.message.includes("NetworkError")))
   );
-}
-
-async function describeFunctionError(error: unknown) {
-  if (error instanceof FunctionsHttpError) {
-    try {
-      const payload = (await error.context.clone().json()) as {
-        error?: string;
-      };
-      if (payload.error) {
-        return payload.error;
-      }
-    } catch {
-      // Fall through to the generic HTTP error copy below.
-    }
-
-    return `${error.message} (${error.context.status})`;
-  }
-
-  if (error instanceof FunctionsFetchError) {
-    return "Burner could not reach the local Supabase Edge runtime.";
-  }
-
-  if (error instanceof FunctionsRelayError) {
-    return "Supabase could not relay the burner request.";
-  }
-
-  return error instanceof Error
-    ? error.message
-    : "Burner could not create that share link.";
 }
 
 function sanitizeDraftForLocalShare(draft: BurnerDraft): {
@@ -872,7 +827,9 @@ export function HomeClient() {
     }
 
     if (turnstileRequired && !captchaToken) {
-      setAuthMessage("Complete the security check before creating your account.");
+      setAuthMessage(
+        "Complete the security check before creating your account.",
+      );
       return;
     }
 
@@ -949,9 +906,7 @@ export function HomeClient() {
 
   async function handleOAuth(provider: "google") {
     if (!supabase) {
-      setAuthMessage(
-        "Supabase auth is not configured on this deployment yet.",
-      );
+      setAuthMessage("Supabase auth is not configured on this deployment yet.");
       return;
     }
 
@@ -968,9 +923,7 @@ export function HomeClient() {
       }
 
       if (!data.url) {
-        throw new Error(
-          "Google OAuth is not configured in Supabase yet.",
-        );
+        throw new Error("Google OAuth is not configured in Supabase yet.");
       }
 
       window.location.assign(data.url);
@@ -1280,19 +1233,19 @@ export function HomeClient() {
     setShowBurnAnimation(true);
     setAuthMessage(null);
 
+    const draft: BurnerDraft = {
+      title: title.trim(),
+      senderName: senderName.trim(),
+      note: note.trim() || undefined,
+      coverImageUrl: coverImageUrl.trim() || undefined,
+      revealMode: "verified-or-timed",
+      tracks,
+    };
+
     try {
       await new Promise((resolve) =>
         window.setTimeout(resolve, BURN_ANIMATION_DURATION_MS),
       );
-
-      const draft: BurnerDraft = {
-        title: title.trim(),
-        senderName: senderName.trim(),
-        note: note.trim() || undefined,
-        coverImageUrl: coverImageUrl.trim() || undefined,
-        revealMode: "verified-or-timed",
-        tracks,
-      };
 
       if (!supabase || !session) {
         const localResult = buildLocalPublishResult(draft);
@@ -1304,18 +1257,32 @@ export function HomeClient() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("create-burner", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
+      const response = await fetch(
+        `${env.supabaseUrl.replace(/\/$/, "")}/functions/v1/create-burner`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: env.supabaseAnonKey,
+          },
+          body: JSON.stringify(draft),
         },
-        body: draft,
-      });
+      );
 
-      if (error) {
-        if (shouldUseLocalPublishFallback(error)) {
+      const payload = (await response.json().catch(() => null)) as
+        | PublishResult
+        | { error?: string }
+        | null;
+
+      if (!response.ok) {
+        if (
+          isLocalBrowserHost() &&
+          (response.status === 404 || response.status >= 500)
+        ) {
           console.warn(
             "Burner fell back to a browser-only share link because create-burner failed locally.",
-            error,
+            payload,
           );
           const localResult = buildLocalPublishResult(draft);
           storePublishedShare(localResult);
@@ -1325,11 +1292,31 @@ export function HomeClient() {
           return;
         }
 
-        throw new Error(await describeFunctionError(error));
+        throw new Error(
+          payload &&
+            typeof payload === "object" &&
+            "error" in payload &&
+            typeof payload.error === "string"
+            ? payload.error
+            : `Burner could not create that share link. (${response.status})`,
+        );
       }
 
-      storePublishedShare(data as PublishResult);
+      if (!payload) {
+        throw new Error("Burner returned an empty response.");
+      }
+
+      storePublishedShare(payload as PublishResult);
     } catch (error) {
+      if (shouldUseLocalPublishFallback(error)) {
+        const localResult = buildLocalPublishResult(draft);
+        storePublishedShare(localResult);
+        if (localResult.warnings && localResult.warnings.length > 0) {
+          setAuthMessage(localResult.warnings.join(" "));
+        }
+        return;
+      }
+
       setAuthMessage((error as Error).message);
     } finally {
       setStudioBusy(false);
@@ -1433,7 +1420,9 @@ export function HomeClient() {
           <div className="share-dialog__panel auth-dialog__panel">
             <div className="auth-dialog__header">
               <div className="stack-xs">
-                <strong className="share-dialog__eyebrow">Account access</strong>
+                <strong className="share-dialog__eyebrow">
+                  Account access
+                </strong>
                 <h2 className="share-dialog__title" id="auth-dialog-title">
                   {authMode === "signup"
                     ? "Create Account"
@@ -1636,50 +1625,65 @@ export function HomeClient() {
       ) : null}
       <section className="itunes-window">
         <header className="studio-header">
-          <div className="studio-header__copy">
-            <span className="eyebrow">
-              <BurnerMark className="eyebrow__mark" size={18} />
-              burner studio
-            </span>
-            <h1>{title || "Untitled Burner"}</h1>
+          <div className="studio-brand">
+            <BurnerLogo
+              className="studio-brand__identity"
+              iconSize={42}
+              scale={0.82}
+            />
           </div>
-          <div className="studio-header__actions">
-            <button
-              className="button button--primary"
-              disabled={studioBusy}
-              onClick={publishBurner}
-            >
-              {studioBusy ? "Burning..." : "Burn Link"}
-            </button>
-            {runtimeFlags.isSupabaseConfigured && session ? (
-              <Link className="button button--secondary" href="/my-burns">
-                My Burns
-              </Link>
-            ) : null}
-            {runtimeFlags.isSupabaseConfigured && session ? (
+          <div className="studio-titleblock">
+            <span className="eyebrow">current mix</span>
+            <h1>{title || "Untitled Burner"}</h1>
+            <p className="studio-titleblock__copy">
+              Arrange tracks, preview the order, and publish one shareable
+              playlist link.
+            </p>
+          </div>
+          <div className="studio-header__side">
+            <div className="studio-header__utility">
+              {runtimeFlags.isSupabaseConfigured && session ? (
+                <Link
+                  className="button button--secondary button--utility"
+                  href="/my-burns"
+                >
+                  My Burns
+                </Link>
+              ) : null}
+              {runtimeFlags.isSupabaseConfigured && session ? (
+                <button
+                  className="button button--secondary button--utility"
+                  disabled={authBusy !== null}
+                  onClick={handleSignOut}
+                  type="button"
+                >
+                  Sign Out
+                </button>
+              ) : null}
+              {runtimeFlags.isSupabaseConfigured && !session ? (
+                <button
+                  className="button button--secondary button--utility"
+                  disabled={authBusy !== null}
+                  onClick={() => {
+                    setAuthMessage(null);
+                    setAuthMode("signin");
+                    setShowAuthDialog(true);
+                  }}
+                  type="button"
+                >
+                  Sign In
+                </button>
+              ) : null}
+            </div>
+            <div className="studio-header__primary">
               <button
-                className="button button--secondary"
-                disabled={authBusy !== null}
-                onClick={handleSignOut}
-                type="button"
+                className="button button--primary button--hero"
+                disabled={studioBusy}
+                onClick={publishBurner}
               >
-                Sign Out
+                {studioBusy ? "Burning..." : "Burn Link"}
               </button>
-            ) : null}
-            {runtimeFlags.isSupabaseConfigured && !session ? (
-              <button
-                className="button button--secondary"
-                disabled={authBusy !== null}
-                onClick={() => {
-                  setAuthMessage(null);
-                  setAuthMode("signin");
-                  setShowAuthDialog(true);
-                }}
-                type="button"
-              >
-                Sign In
-              </button>
-            ) : null}
+            </div>
           </div>
         </header>
 
@@ -1705,13 +1709,19 @@ export function HomeClient() {
           </div>
         ) : null}
 
-        {browserOnlyModeMessage ? (
-          <p className="status-message status-message--compact">
-            {browserOnlyModeMessage}
-          </p>
-        ) : null}
-        {historyUpsellMessage ? (
-          <p className="studio-auth-note">{historyUpsellMessage}</p>
+        {browserOnlyModeMessage || historyUpsellMessage ? (
+          <div className="studio-header__notices">
+            {browserOnlyModeMessage ? (
+              <p className="status-message status-message--compact studio-notice">
+                {browserOnlyModeMessage}
+              </p>
+            ) : null}
+            {historyUpsellMessage ? (
+              <p className="studio-auth-note studio-notice">
+                {historyUpsellMessage}
+              </p>
+            ) : null}
+          </div>
         ) : null}
 
         {showShareDialog && publishResult ? (
@@ -1783,28 +1793,32 @@ export function HomeClient() {
               <h2>Share</h2>
               {publishResult ? (
                 <div className="itunes-sharebox">
-                  <strong>{publishResult.shortCode}</strong>
-                  <a
-                    href={publishResult.shareUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open Link
-                  </a>
-                  <button
-                    className="button button--secondary"
-                    onClick={copyShareUrl}
-                    type="button"
-                  >
-                    {copiedState === "copied" ? "Copied" : "Copy Link"}
-                  </button>
-                  <button
-                    className="button button--secondary"
-                    onClick={() => setShowShareDialog(true)}
-                    type="button"
-                  >
-                    Share Options
-                  </button>
+                  <div className="itunes-sharebox__meta">
+                    <strong>{publishResult.shortCode}</strong>
+                    <a
+                      href={publishResult.shareUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open Link
+                    </a>
+                  </div>
+                  <div className="button-row itunes-sharebox__actions">
+                    <button
+                      className="button button--secondary"
+                      onClick={copyShareUrl}
+                      type="button"
+                    >
+                      {copiedState === "copied" ? "Copied" : "Copy Link"}
+                    </button>
+                    <button
+                      className="button button--secondary"
+                      onClick={() => setShowShareDialog(true)}
+                      type="button"
+                    >
+                      Share Options
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="itunes-sharebox itunes-sharebox--empty">
@@ -1838,9 +1852,9 @@ export function HomeClient() {
                 </button>
               </div>
               <p className="itunes-coverfield__hint">
-                Paste public YouTube links (one per line) or a playlist URL (up to 50 tracks).
-                Accepted formats: youtu.be, youtube.com/watch, youtube.com/playlist, youtube.com/shorts,
-                and raw video IDs.
+                Paste public YouTube links (one per line) or a playlist URL (up
+                to 50 tracks). Accepted formats: youtu.be, youtube.com/watch,
+                youtube.com/playlist, youtube.com/shorts, and raw video IDs.
               </p>
             </div>
 
@@ -2044,8 +2058,7 @@ export function HomeClient() {
                         : "itunes-roundbutton--play"
                     } ${transportIsBusy ? "itunes-roundbutton--disabled" : ""}`}
                     disabled={
-                      transportIsBusy ||
-                      (!previewTrack && tracks.length === 0)
+                      transportIsBusy || (!previewTrack && tracks.length === 0)
                     }
                     onClick={() => void toggleTransportPlayback()}
                     type="button"
@@ -2066,8 +2079,7 @@ export function HomeClient() {
                 <em>Tracks:</em> {tracks.length}
               </span>
               <span>
-                <em>Loaded:</em>{" "}
-                {previewTrack ? previewTrack.title : "None"}
+                <em>Loaded:</em> {previewTrack ? previewTrack.title : "None"}
               </span>
               <span>
                 <em>Status:</em>{" "}

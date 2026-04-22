@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { burnerTagline } from "../lib/brand";
+
 type ShareDialogProps = {
   copied: boolean;
   emailHref: string;
@@ -64,14 +66,12 @@ export function ShareDialog({
       <div className="share-dialog__panel">
         <div className="share-dialog__header">
           <div className="stack-xs">
-            <strong className="share-dialog__eyebrow">
-              Burner ready to send
-            </strong>
+            <strong className="share-dialog__eyebrow">{burnerTagline}</strong>
             <h2 className="share-dialog__title" id="share-dialog-title">
               Share “{title || "Untitled Burner"}”
             </h2>
             <p className="share-dialog__copy">
-              The link is live. Copy it or open your mail app.
+              The burn link is live. Copy it or open your mail app.
             </p>
           </div>
           <button
