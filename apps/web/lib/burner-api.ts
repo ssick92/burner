@@ -218,3 +218,18 @@ export async function getBurnerShareLink(input: { burnerId: string }) {
     "Burner could not open that share page.",
   );
 }
+
+export async function getBurnerDraft(input: { burnerId: string }) {
+  return invokeAuthedBrowserFunction<{
+    title: string;
+    senderName: string;
+    note?: string;
+    coverImageUrl?: string;
+    revealMode: "timed" | "verified-or-timed";
+    tracks: ImportedTrack[];
+  }>(
+    "/api/burner-draft",
+    input,
+    "Burner could not load that saved burn.",
+  );
+}

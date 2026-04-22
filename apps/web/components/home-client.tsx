@@ -35,6 +35,7 @@ import {
   buildBrowserApiUrl,
   getCanonicalBrowserOrigin,
 } from "../lib/browser-origin";
+import { getBurnerDraft } from "../lib/burner-api";
 interface PublishResult {
   burnerId: string;
   shareUrl: string;
@@ -254,6 +255,12 @@ export function HomeClient() {
     defaultDraft.coverImageUrl ?? "",
   );
   const [tracks, setTracks] = useState<ImportedTrack[]>(defaultDraft.tracks);
+  const [editHydration, setEditHydration] = useState<
+    | { kind: "idle" }
+    | { kind: "loading"; burnerId: string }
+    | { kind: "loaded"; sourceTitle: string }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
   const [draggedTrackId, setDraggedTrackId] = useState<string | null>(null);
   const [playlistDropActive, setPlaylistDropActive] = useState(false);
   const [playlistInsertIndex, setPlaylistInsertIndex] = useState<number | null>(
@@ -348,6 +355,52 @@ export function HomeClient() {
       subscription.unsubscribe();
     };
   }, [supabase]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !supabase || !session) {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    const editId = url.searchParams.get("edit")?.trim();
+    if (!editId) {
+      return;
+    }
+
+    let cancelled = false;
+    setEditHydration({ kind: "loading", burnerId: editId });
+
+    getBurnerDraft({ burnerId: editId })
+      .then((draft) => {
+        if (cancelled) return;
+        setTitle(draft.title);
+        setSenderName(draft.senderName || deriveSenderName(session));
+        setNote(draft.note ?? "");
+        setCoverImageUrl(draft.coverImageUrl ?? "");
+        setTracks(draft.tracks);
+        setEditHydration({ kind: "loaded", sourceTitle: draft.title });
+        url.searchParams.delete("edit");
+        window.history.replaceState(
+          null,
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        setEditHydration({
+          kind: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Burner could not load that saved burn.",
+        });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, session]);
 
   useEffect(() => {
     previewTransportRef.current = previewTransport;
@@ -1639,6 +1692,20 @@ export function HomeClient() {
               Arrange tracks, preview the order, and publish one shareable
               playlist link.
             </p>
+            {editHydration.kind === "loading" ? (
+              <p className="studio-titleblock__copy">
+                Loading saved burn…
+              </p>
+            ) : editHydration.kind === "loaded" ? (
+              <p className="studio-titleblock__copy">
+                Editing a copy of “{editHydration.sourceTitle}”. Burning will
+                save it as a new mixtape.
+              </p>
+            ) : editHydration.kind === "error" ? (
+              <p className="studio-titleblock__copy status-message">
+                Could not load saved burn: {editHydration.message}
+              </p>
+            ) : null}
           </div>
           <div className="studio-header__side">
             <div className="studio-header__utility">

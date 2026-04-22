@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 
-import { getBurnerShareLink } from "../lib/burner-api";
 import { runtimeFlags } from "../lib/env";
 import { getBrowserSupabaseClient } from "../lib/supabase";
 
@@ -60,11 +59,9 @@ export function MyBurnsClient() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [pendingAction, setPendingAction] = useState<{
     burnerId: string;
-    kind: "deleting" | "opening";
+    kind: "deleting";
   } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const openingBurnerId =
-    pendingAction?.kind === "opening" ? pendingAction.burnerId : null;
   const deletingBurnerId =
     pendingAction?.kind === "deleting" ? pendingAction.burnerId : null;
 
@@ -145,23 +142,6 @@ export function MyBurnsClient() {
       cancelled = true;
     };
   }, [authReady, session]);
-
-  async function openBurnerShare(burnerId: string) {
-    setActionError(null);
-    setPendingAction({ burnerId, kind: "opening" });
-
-    try {
-      const { shareUrl } = await getBurnerShareLink({ burnerId });
-      window.location.assign(shareUrl);
-    } catch (error) {
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "Burner could not open that share page.",
-      );
-      setPendingAction(null);
-    }
-  }
 
   async function deleteBurner(burner: BurnerRow) {
     const burnerLabel = burner.title.trim() || "Untitled Burner";
@@ -280,11 +260,9 @@ export function MyBurnsClient() {
             return (
               <li className="my-burns__item" key={burner.id}>
                 <div className="my-burns__itemrow">
-                  <button
+                  <Link
                     className="my-burns__itemlink"
-                    disabled={pendingAction !== null}
-                    onClick={() => void openBurnerShare(burner.id)}
-                    type="button"
+                    href={`/?edit=${encodeURIComponent(burner.id)}`}
                   >
                     <div className="my-burns__cover">
                       {burner.cover_image_url ? (
@@ -307,13 +285,11 @@ export function MyBurnsClient() {
                       <span>Created {formatCreatedAt(burner.created_at)}</span>
                       {link ? (
                         <span className="my-burns__shortcode">
-                          {openingBurnerId === burner.id
-                            ? "Opening..."
-                            : link.short_code}
+                          {link.short_code}
                         </span>
                       ) : null}
                     </div>
-                  </button>
+                  </Link>
 
                   <button
                     className="button my-burns__delete"
