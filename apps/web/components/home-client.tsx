@@ -162,6 +162,28 @@ function buildLocalPublishResult(draft: BurnerDraft): PublishResult {
   };
 }
 
+function recordBrowserBurnEvent(
+  draft: BurnerDraft,
+  source: "anonymous-browser" | "local-fallback",
+) {
+  const body = JSON.stringify({
+    source,
+    trackCount: draft.tracks.length,
+    hasCover: Boolean(draft.coverImageUrl),
+  });
+
+  void fetch("/api/browser-burn-events", {
+    body,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    keepalive: true,
+    method: "POST",
+  }).catch(() => {
+    // Counting should never block someone from getting their share link.
+  });
+}
+
 function deriveSenderName(session: Session | null) {
   if (!session) {
     return defaultDraft.senderName;
@@ -1302,6 +1324,7 @@ export function HomeClient() {
 
       if (!supabase || !session) {
         const localResult = buildLocalPublishResult(draft);
+        recordBrowserBurnEvent(draft, "anonymous-browser");
         storePublishedShare(localResult);
         setAuthMessage(
           localResult.warnings?.join(" ") ??
@@ -1338,6 +1361,7 @@ export function HomeClient() {
             payload,
           );
           const localResult = buildLocalPublishResult(draft);
+          recordBrowserBurnEvent(draft, "local-fallback");
           storePublishedShare(localResult);
           if (localResult.warnings && localResult.warnings.length > 0) {
             setAuthMessage(localResult.warnings.join(" "));
