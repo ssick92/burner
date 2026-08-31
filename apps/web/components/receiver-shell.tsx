@@ -380,7 +380,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
     ? `Sender's Note: ${exchange.burner.note}`
     : hiddenTrackCount > 0
       ? `${revealedTracks.length}/${exchange.burner.totalTracks} tracks revealed so far. Hidden songs stay masked until they start.`
-      : "Every song on this mixtape is unlocked now.";
+      : "Every song on this CD is unlocked now.";
   const playerPanelHeadline = currentVisibleTrack
     ? currentVisibleArtist
     : `Track ${formatTrackPosition(activeTrackPosition)} is still masked.`;
@@ -1502,7 +1502,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
             </div>
 
             <div className="receiver-banner__copy">
-              <span className="receiver-banner__eyebrow">Mixtape</span>
+              <span className="receiver-banner__eyebrow">Burner CD</span>
               <h1>{exchange.burner.title}</h1>
               <p className="receiver-banner__headline">
                 Burned by {exchange.burner.senderName}
@@ -1518,9 +1518,6 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
                 {hiddenTrackCount > 0
                   ? `${hiddenTrackCount} hidden`
                   : "Disc unlocked"}
-              </span>
-              <span className="receiver-toolbar__item">
-                Burned by {exchange.burner.senderName}
               </span>
             </div>
 
@@ -1859,7 +1856,7 @@ export function ReceiverShell({ exchange }: { exchange: ReceiverExchange }) {
           <footer className="itunes-statusbar receiver-statusbar">
             <span>
               {hiddenTrackCount > 0
-                ? `${hiddenTrackCount} tracks still hidden`
+                ? `${hiddenTrackCount} ${hiddenTrackCount === 1 ? "track" : "tracks"} still hidden`
                 : "Disc fully revealed"}
             </span>
             <span>

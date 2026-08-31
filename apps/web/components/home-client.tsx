@@ -21,7 +21,8 @@ import {
 import { BurnerLogo } from "./burner-logo";
 import { CoverArtField } from "./cover-art-field";
 import { ShareDialog } from "./share-dialog";
-import { defaultDraft } from "../lib/provider-catalog";
+import { SongSearch } from "./song-search";
+import { defaultDraft, demoDraft } from "../lib/provider-catalog";
 import {
   buildInAppPreviewEmbedUrl,
   supportsInAppPreview,
@@ -73,23 +74,23 @@ type MusicResolveResponse = YouTubeResolveResponse;
 
 type PreviewTransport = "audio" | "embed" | "youtube" | null;
 const BURN_ANIMATION_DURATION_MS = 1800;
-const ONBOARDING_STORAGE_KEY = "burner:web:onboarding:v1";
+const ONBOARDING_STORAGE_KEY = "burner:web:onboarding:v2";
 
 const onboardingSteps = [
   {
     eyebrow: "Step 1 of 3",
     title: "Build the disc",
-    copy: "Paste YouTube song links or a playlist, then use the cover and detail fields to make the burner feel personal.",
+    copy: "Search for songs or paste a playlist. Add a title, your name, a cover, and a note so it feels like it was made for them.",
   },
   {
     eyebrow: "Step 2 of 3",
     title: "Check the order",
-    copy: "Click a row to load the preview deck, press play when you want to listen, and drag songs to reorder the mix.",
+    copy: "Click a row to preview, then drag to reorder. Recipients hear the disc in this order — they can't skip ahead.",
   },
   {
     eyebrow: "Step 3 of 3",
-    title: "Burn and share",
-    copy: "Press Burn Link when the mix is ready. Burner creates one share page you can copy, email, or reopen from your history after signing in.",
+    title: "Burn this CD",
+    copy: "Press Burn this CD when it's ready. You'll get one link to send. Tracks stay hidden until they press Play.",
   },
 ] as const;
 
@@ -222,14 +223,14 @@ function buildLocalPublishResult(draft: BurnerDraft): PublishResult {
 
 function deriveSenderName(session: AppSession | null) {
   if (!session) {
-    return defaultDraft.senderName;
+    return "";
   }
 
   return (
     session.user.user_metadata?.display_name ??
     session.user.user_metadata?.full_name ??
     session.user.email?.split("@")[0] ??
-    defaultDraft.senderName
+    ""
   );
 }
 
@@ -1138,6 +1139,51 @@ export function HomeClient() {
     return payload.tracks ?? (payload.track ? [payload.track] : []);
   }
 
+  function addImportedTracks(resolvedTracks: ImportedTrack[]) {
+    const seen = new Set(tracks.map((track) => getAppleMusicTrackKey(track)));
+    const tracksToAdd: ImportedTrack[] = [];
+
+    for (const track of resolvedTracks) {
+      const trackKey = getAppleMusicTrackKey(track);
+      if (seen.has(trackKey)) {
+        continue;
+      }
+
+      seen.add(trackKey);
+      tracksToAdd.push(track);
+    }
+
+    if (tracksToAdd.length > 0) {
+      setTracks((current) => [...current, ...tracksToAdd]);
+      clearPublishedShare();
+    }
+
+    const duplicateCount = resolvedTracks.length - tracksToAdd.length;
+    if (tracksToAdd.length === 0) {
+      setAuthMessage("Those songs are already on this burner.");
+    } else if (duplicateCount > 0) {
+      setAuthMessage(
+        `Added ${tracksToAdd.length} song${tracksToAdd.length === 1 ? "" : "s"}. Skipped ${duplicateCount} already on this burner.`,
+      );
+    } else {
+      setAuthMessage(
+        `Added ${tracksToAdd.length} song${tracksToAdd.length === 1 ? "" : "s"} to this burner.`,
+      );
+    }
+
+    return tracksToAdd.length;
+  }
+
+  function loadDemoDisc() {
+    setTitle(demoDraft.title);
+    setSenderName(demoDraft.senderName);
+    setNote(demoDraft.note ?? "");
+    setCoverImageUrl(demoDraft.coverImageUrl ?? "");
+    setTracks(demoDraft.tracks);
+    clearPublishedShare();
+    setAuthMessage("Demo disc loaded. Swap songs, then burn it as your own.");
+  }
+
   async function importMusicLinks() {
     const youtubeCandidates = extractYouTubeImportCandidates(importText);
     const appleMusicCandidates = extractAppleMusicImportCandidates(importText);
@@ -1169,38 +1215,8 @@ export function HomeClient() {
         throw new Error("Burner could not resolve any of those song links.");
       }
 
-      const seen = new Set(tracks.map((track) => getAppleMusicTrackKey(track)));
-      const tracksToAdd: ImportedTrack[] = [];
-
-      for (const track of resolvedTracks) {
-        const trackKey = getAppleMusicTrackKey(track);
-        if (seen.has(trackKey)) {
-          continue;
-        }
-
-        seen.add(trackKey);
-        tracksToAdd.push(track);
-      }
-
-      if (tracksToAdd.length > 0) {
-        setTracks((current) => [...current, ...tracksToAdd]);
-      }
-
+      addImportedTracks(resolvedTracks);
       setImportText("");
-      clearPublishedShare();
-
-      const duplicateCount = resolvedTracks.length - tracksToAdd.length;
-      if (tracksToAdd.length === 0) {
-        setAuthMessage("Those songs are already on this burner.");
-      } else if (duplicateCount > 0) {
-        setAuthMessage(
-          `Added ${tracksToAdd.length} song${tracksToAdd.length === 1 ? "" : "s"}. Skipped ${duplicateCount} already on this burner.`,
-        );
-      } else {
-        setAuthMessage(
-          `Added ${tracksToAdd.length} song${tracksToAdd.length === 1 ? "" : "s"} to this burner.`,
-        );
-      }
     } catch (error) {
       setAuthMessage((error as Error).message);
     } finally {
@@ -1399,7 +1415,7 @@ export function HomeClient() {
     }
 
     if (tracks.length === 0) {
-      setAuthMessage("Add at least one YouTube song before you burn the link.");
+      setAuthMessage("Add at least one song before you burn this CD.");
       return;
     }
 
@@ -1427,7 +1443,7 @@ export function HomeClient() {
         storePublishedShare(localResult);
         setAuthMessage(
           localResult.warnings?.join(" ") ??
-            "Burner created a browser-only share link for this mixtape.",
+            "Burner created a browser-only share link for this CD.",
         );
         return;
       }
@@ -1523,7 +1539,7 @@ export function HomeClient() {
     previewBusyTrackId !== null || previewState === "loading";
   const browserOnlyMode = !runtimeFlags.isBackendConfigured;
   const browserOnlyModeMessage = browserOnlyMode
-    ? "Browser-only publishing is active on this deployment. Burner will pack the mixtape into the share link itself, so extra-large playlists can be too long to send."
+    ? "Browser-only publishing is active on this deployment. Burner will pack the disc into the share link itself, so extra-large playlists can be too long to send."
     : null;
   const donationSupportBox = runtimeFlags.hasDeveloperDonation
     ? {
@@ -1888,6 +1904,7 @@ export function HomeClient() {
           <div className="studio-brand">
             <BurnerLogo
               className="studio-brand__identity"
+              href="/"
               iconSize={42}
               scale={0.82}
             />
@@ -1896,15 +1913,15 @@ export function HomeClient() {
             <span className="eyebrow">current mix</span>
             <h1>{title || "Untitled Burner"}</h1>
             <p className="studio-titleblock__copy">
-              Arrange tracks, preview the order, and publish one shareable
-              playlist link.
+              Search songs, set the order, then burn one link they have to
+              listen to in sequence.
             </p>
             {editHydration.kind === "loading" ? (
               <p className="studio-titleblock__copy">Loading saved burn…</p>
             ) : editHydration.kind === "loaded" ? (
               <p className="studio-titleblock__copy">
                 Editing a copy of “{editHydration.sourceTitle}”. Burning will
-                save it as a new mixtape.
+                save it as a new CD.
               </p>
             ) : editHydration.kind === "error" ? (
               <p className="studio-titleblock__copy status-message">
@@ -1953,7 +1970,7 @@ export function HomeClient() {
                 disabled={studioBusy}
                 onClick={publishBurner}
               >
-                {studioBusy ? "Burning..." : "Burn Link"}
+                {studioBusy ? "Burning..." : "Burn this CD"}
               </button>
             </div>
           </div>
@@ -2030,6 +2047,7 @@ export function HomeClient() {
                 <span>Title</span>
                 <input
                   className="input"
+                  placeholder="For Sam, junior year"
                   value={title}
                   onChange={(event) => {
                     setTitle(event.target.value);
@@ -2041,6 +2059,7 @@ export function HomeClient() {
                 <span>Sender</span>
                 <input
                   className="input"
+                  placeholder="Your name"
                   value={senderName}
                   onChange={(event) => {
                     setSenderName(event.target.value);
@@ -2102,9 +2121,13 @@ export function HomeClient() {
 
           <section className="itunes-main">
             <div className="studio-addsongs">
+              <SongSearch
+                disabled={importBusy}
+                onAddTrack={(track) => addImportedTracks([track])}
+              />
               <div className="studio-addsongs__row">
                 <label className="field">
-                  <span>YouTube or Apple Music Links</span>
+                  <span>Or paste YouTube / Apple Music links</span>
                   <textarea
                     className="textarea textarea--compact"
                     placeholder={
@@ -2124,10 +2147,9 @@ export function HomeClient() {
                 </button>
               </div>
               <p className="itunes-coverfield__hint">
-                Paste public YouTube links or a YouTube playlist URL, plus Apple
-                Music song, album, or playlist links. YouTube playlists and
-                Apple Music albums and playlists import up to 50 tracks each
-                through the catalog API.
+                Search by song name, or paste public YouTube and Apple Music
+                links. Playlists import up to 50 tracks. Recipients hear the
+                disc in order — about 80 minutes, like a real CD.
               </p>
             </div>
 
@@ -2171,9 +2193,15 @@ export function HomeClient() {
                 >
                   {tracks.length === 0 ? (
                     <div className="itunes-emptyrow">
-                      Paste YouTube or Apple Music song links above to start
-                      building the disc. Burner will resolve them and keep
-                      previews in-app when the provider allows it.
+                      Search for a song above, or{" "}
+                      <button
+                        className="text-button"
+                        onClick={loadDemoDisc}
+                        type="button"
+                      >
+                        start from the demo disc
+                      </button>
+                      .
                     </div>
                   ) : null}
                   {tracks.map((track, index) => (
@@ -2304,7 +2332,7 @@ export function HomeClient() {
               </div>
               <div className="itunes-previewbar__copy">
                 <strong>
-                  {previewTrack ? previewTrack.title : "Preview Deck"}
+                  {previewTrack ? previewTrack.title : "Preview"}
                 </strong>
                 <span>
                   {previewTrack

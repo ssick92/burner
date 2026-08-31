@@ -4,6 +4,7 @@ import type { ImportedTrack, RevealedTrack, ShareExchangeResult } from "@burner/
 import { demoExchange, draft } from "./demo-burner";
 import { runtimeFlags } from "./env";
 import { getSession } from "./auth-client";
+import { DEMO_SHARE_SLUGS } from "./share-meta";
 
 async function getBrowserAccessToken() {
   const initialSession = await getSession();
@@ -61,6 +62,10 @@ export async function exchangeShareAccess(
   payload?: string,
   clientFingerprint = "web-anon",
 ): Promise<ShareExchangeResult & { localTracks?: ImportedTrack[] }> {
+  if (DEMO_SHARE_SLUGS.has(slug) && !payload) {
+    return demoExchange;
+  }
+
   if (payload) {
     return createLocalShareExchange(slug, payload);
   }
@@ -112,6 +117,10 @@ export async function exchangeShareAccessInBrowser(
   payload?: string,
   clientFingerprint?: string,
 ) {
+  if (DEMO_SHARE_SLUGS.has(slug) && !payload) {
+    return demoExchange;
+  }
+
   if (payload || !token || !runtimeFlags.isBackendConfigured) {
     return exchangeShareAccess(slug, token, payload, clientFingerprint);
   }

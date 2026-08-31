@@ -20,7 +20,7 @@ function usernameFromEmail(email: string) {
 }
 
 function errorRedirect(origin: string, code: string) {
-  const url = new URL("/", origin);
+  const url = new URL("/studio", origin);
   url.searchParams.set("auth_error", code);
   return NextResponse.redirect(url);
 }
@@ -108,7 +108,7 @@ export async function GET(request: Request) {
     `;
 
     await createSession(user);
-    return NextResponse.redirect(new URL("/", origin));
+    return NextResponse.redirect(new URL("/studio", origin));
   } catch (error) {
     console.error("Google OAuth callback failed:", error);
     return errorRedirect(origin, "exchange_failed");

@@ -2,7 +2,7 @@ import type { BurnerDraft, ImportedTrack } from "@burner/core";
 
 export const defaultDraft: BurnerDraft = {
   title: "",
-  senderName: "Web Sender",
+  senderName: "",
   note: "",
   revealMode: "verified-or-timed",
   coverImageUrl: "",
@@ -47,6 +47,7 @@ export const demoDraft: BurnerDraft = {
   senderName: "Skye",
   note: "Track 2 was the one I almost left off. Keep it in.",
   revealMode: "verified-or-timed",
-  coverImageUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
+  coverImageUrl:
+    "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=80",
   tracks: demoTracks,
 };

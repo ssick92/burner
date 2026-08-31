@@ -9,12 +9,34 @@ import { ThemeToggle } from "../components/theme-toggle";
 import {
   burnerBrandName,
   burnerMetaDescription,
+  burnerSiteUrl,
   burnerTagline,
 } from "../lib/brand";
 
 export const metadata: Metadata = {
-  title: `${burnerBrandName} | ${burnerTagline}`,
+  metadataBase: new URL(burnerSiteUrl),
+  title: {
+    default: `${burnerBrandName} | ${burnerTagline}`,
+    template: `%s | ${burnerBrandName}`,
+  },
   description: burnerMetaDescription,
+  applicationName: burnerBrandName,
+  openGraph: {
+    title: `${burnerBrandName} | ${burnerTagline}`,
+    description: burnerMetaDescription,
+    url: burnerSiteUrl,
+    siteName: burnerBrandName,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${burnerBrandName} | ${burnerTagline}`,
+    description: burnerMetaDescription,
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 const themeBootScript = `
