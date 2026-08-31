@@ -22,14 +22,14 @@ export default function TermsPage() {
       </p>
       <h2>Playback</h2>
       <p>
-        Songs play through the original provider (usually YouTube). We don't
+        Songs play through the original provider (usually YouTube). We don&apos;t
         host audio files. If a video is blocked, private, or removed, that
-        track won't play.
+        track won&apos;t play.
       </p>
       <h2>Accounts</h2>
       <p>
         You can burn without an account. Creating one stores your burn history.
-        Don't share your password. We may remove abusive or illegal content.
+        Don&apos;t share your password. We may remove abusive or illegal content.
       </p>
       <p>
         Questions:{" "}

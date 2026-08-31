@@ -235,7 +235,7 @@ export function MyBurnsClient() {
         </Link>
         <h1>My Burns</h1>
         <p className="my-burns__subtitle">
-          Every CD you've burned. Tap one to reopen it in the studio.
+          Every CD you&apos;ve burned. Tap one to reopen it in the studio.
         </p>
       </header>
 

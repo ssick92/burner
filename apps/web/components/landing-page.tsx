@@ -22,7 +22,7 @@ export function LandingPage() {
       <section className="landing-hero">
         <div className="landing-hero__copy">
           <span className="eyebrow">A mix they have to listen to</span>
-          <h1>Send someone a CD they can't skip ahead on.</h1>
+          <h1>Send someone a CD they can&apos;t skip ahead on.</h1>
           <p>
             Pick the songs, Sharpie the cover, burn a link. Tracks stay hidden
             until they play — no spoilers, just like a real burner.
@@ -62,7 +62,7 @@ export function LandingPage() {
         <article>
           <span>01</span>
           <h2>Pick the songs</h2>
-          <p>Search YouTube or paste a playlist. Keep it to a disc's worth.</p>
+          <p>Search YouTube or paste a playlist. Keep it to a disc&apos;s worth.</p>
         </article>
         <article>
           <span>02</span>

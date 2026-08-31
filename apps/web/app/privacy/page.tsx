@@ -28,10 +28,10 @@ export default function PrivacyPage() {
         </li>
         <li>Anonymous listen progress on a share link, so tracks stay hidden until they play.</li>
       </ul>
-      <h2>What we don't do</h2>
+      <h2>What we don&apos;t do</h2>
       <ul>
-        <li>We don't sell your data.</li>
-        <li>We don't put unrevealed track titles in public share previews.</li>
+        <li>We don&apos;t sell your data.</li>
+        <li>We don&apos;t put unrevealed track titles in public share previews.</li>
         <li>Share links are meant for the person you send them to. Treat them like a mix you handed over.</li>
       </ul>
       <p>
