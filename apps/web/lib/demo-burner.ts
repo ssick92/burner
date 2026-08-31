@@ -11,7 +11,7 @@ export const demoExchange = {
   sessionToken: "web-demo-session",
   burner: createBurnerShell({
     id: "web-demo-burner",
-    slug: "demo-burner",
+    slug: "demo",
     draft,
   }),
   firstTrack: {
@@ -25,4 +25,5 @@ export const demoExchange = {
     playbackCapabilities: ["handoffPlayback"],
   } satisfies RevealedTrack,
   localTracks: draft.tracks,
+  isLocalShare: true as const,
 };

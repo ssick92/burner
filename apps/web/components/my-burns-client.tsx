@@ -183,7 +183,7 @@ export function MyBurnsClient() {
     return (
       <main className="my-burns">
         <header className="my-burns__header">
-          <Link className="my-burns__back" href="/">
+          <Link className="my-burns__back" href="/studio">
             ← Back to Burner
           </Link>
           <h1>My Burns</h1>
@@ -200,7 +200,7 @@ export function MyBurnsClient() {
     return (
       <main className="my-burns">
         <header className="my-burns__header">
-          <Link className="my-burns__back" href="/">
+          <Link className="my-burns__back" href="/studio">
             ← Back to Burner
           </Link>
           <h1>My Burns</h1>
@@ -214,13 +214,13 @@ export function MyBurnsClient() {
     return (
       <main className="my-burns">
         <header className="my-burns__header">
-          <Link className="my-burns__back" href="/">
+          <Link className="my-burns__back" href="/studio">
             ← Back to Burner
           </Link>
           <h1>My Burns</h1>
         </header>
         <p className="my-burns__empty">
-          Sign in on the <Link href="/">home page</Link> to see the mixtapes
+          Sign in on the <Link href="/studio">studio</Link> to see the CDs
           you&apos;ve burned.
         </p>
       </main>
@@ -230,12 +230,12 @@ export function MyBurnsClient() {
   return (
     <main className="my-burns">
       <header className="my-burns__header">
-        <Link className="my-burns__back" href="/">
+        <Link className="my-burns__back" href="/studio">
           ← Back to Burner
         </Link>
         <h1>My Burns</h1>
         <p className="my-burns__subtitle">
-          Every mixtape you&apos;ve burned. Tap one to open its share page.
+          Every CD you&apos;ve burned. Tap one to reopen it in the studio.
         </p>
       </header>
 
@@ -251,7 +251,7 @@ export function MyBurnsClient() {
         </p>
       ) : state.burners.length === 0 ? (
         <p className="my-burns__empty">
-          No burns yet. <Link href="/">Burn your first mixtape.</Link>
+          No burns yet. <Link href="/studio">Burn your first CD.</Link>
         </p>
       ) : (
         <ul className="my-burns__list">
@@ -262,7 +262,7 @@ export function MyBurnsClient() {
                 <div className="my-burns__itemrow">
                   <Link
                     className="my-burns__itemlink"
-                    href={`/?edit=${encodeURIComponent(burner.id)}`}
+                    href={`/studio?edit=${encodeURIComponent(burner.id)}`}
                   >
                     <div className="my-burns__cover">
                       {burner.cover_image_url ? (

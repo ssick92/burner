@@ -50,7 +50,7 @@ export function ReceiverIntroBanner({
         <p className="receiver-intro__body">
           Press <strong>Play</strong> to hear what’s on it. Each track reveals
           itself only once it starts playing — no spoilers, just like a real
-          mixtape.
+          burner CD.
         </p>
         <button
           className="receiver-intro__dismiss"

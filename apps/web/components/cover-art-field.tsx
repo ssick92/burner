@@ -310,7 +310,7 @@ export function CoverArtField({ value, onChange }: CoverArtFieldProps) {
             unoptimized
           />
         ) : (
-          <span>Upload a square-ish image and fine-tune the crop.</span>
+          <span>Drop a cover, or upload a square JPG or PNG.</span>
         )}
       </div>
 
@@ -347,8 +347,7 @@ export function CoverArtField({ value, onChange }: CoverArtFieldProps) {
       </div>
 
       <p className="itunes-coverfield__hint">
-        Upload a JPG, PNG, or WebP. Burner saves a square crop for the web
-        player.
+        Upload a JPG, PNG, or WebP. Burner crops it square for the player.
       </p>
       {statusMessage ? (
         <p className="itunes-coverfield__status">{statusMessage}</p>
